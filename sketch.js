@@ -4,59 +4,94 @@ let ball;
 let playerScore = 0;
 let aiScore = 0;
 let bgColor;
+let gameEnded = false;
+let dingSound;
+let errorSound;
+let restartButton;
+
+function preload() {
+  dingSound = loadSound("ding.mp3");
+  errorSound = loadSound("error.mp3");
+}
 
 function setup() {
   createCanvas(600, 400);
+  noCursor();
   playerPaddle = new Paddle(false);
   aiPaddle = new Paddle(true);
   ball = new Ball();
   bgColor = color(0);
+
+  restartButton = createButton("Restart");
+  restartButton.position(width / 2, height / 2 + 525);
+  restartButton.mousePressed(restartGame);
 }
 
 function draw() {
   background(bgColor);
 
-  playerPaddle.show(color(0, 0, 255));
-  playerPaddle.update();
+  if (!gameEnded) {
+    playerPaddle.show(color(0, 0, 255));
+    playerPaddle.update();
 
-  aiPaddle.show(color(255, 0, 0)); 
-  aiPaddle.update();
+    aiPaddle.show(color(255, 0, 0));
+    aiPaddle.update();
 
-  ball.show();
-  ball.update();
+    ball.show();
+    ball.update();
 
-  // Mouse Control 
-  playerPaddle.y = mouseY - playerPaddle.height / 2;
-  playerPaddle.y = constrain(playerPaddle.y, 0, height - playerPaddle.height);
+    playerPaddle.y = mouseY - playerPaddle.height / 2;
+    playerPaddle.y = constrain(playerPaddle.y, 0, height - playerPaddle.height);
 
-  
-  aiPaddle.follow(ball);
+    aiPaddle.follow(ball);
 
-  if (ball.checkPaddleCollision(playerPaddle) || ball.checkPaddleCollision(aiPaddle))
-  {
-    // changing Background
-    bgColor = color(random(255), random(255), random(255));
-  }
+    if (
+      ball.checkPaddleCollision(playerPaddle) ||
+      ball.checkPaddleCollision(aiPaddle)
+    ) {
+      bgColor = color(random(255), random(255), random(255));
 
- 
-  if (ball.isOffScreen()) {
-    if (ball.x < 0) {
-      
-      aiScore++;
-    } else {
-     
-      playerScore++;
+      dingSound.play();
     }
-    
-    bgColor = color(0);
-    ball.reset();
-  }
 
-  // Scores
-  textSize(32);
-  fill(255);
-  textAlign(CENTER);
-  text(playerScore + " - " + aiScore, width / 2, 50);
+    if (ball.isOffScreen()) {
+      if (ball.x < 0) {
+        aiScore++;
+      } else {
+        playerScore++;
+      }
+
+      bgColor = color(0);
+      ball.reset();
+
+      errorSound.play();
+
+      if (playerScore >= 10 || aiScore >= 10) {
+        gameEnded = true;
+        restartButton.show();
+      }
+    }
+
+    textSize(32);
+    fill(255);
+    textAlign(CENTER);
+    text(playerScore + " - " + aiScore, width / 2, 50);
+  } else {
+    textSize(32);
+    fill(255);
+    textAlign(CENTER);
+    text("Game Over!", width / 2, height / 2 - 20);
+    text(playerScore + " - " + aiScore, width / 2, height / 2 + 20);
+  }
+}
+
+function restartGame() {
+  playerScore = 0;
+  aiScore = 0;
+  gameEnded = false;
+  bgColor = color(0);
+  ball.reset();
+  restartButton.hide();
 }
 
 class Paddle {
@@ -77,7 +112,6 @@ class Paddle {
   update() {
     this.y += this.ySpeed;
 
-    
     this.y = constrain(this.y, 0, height - this.height);
   }
 
@@ -88,7 +122,6 @@ class Paddle {
   }
 
   follow(ball) {
-    
     const targetY = ball.y - this.height / 2;
     this.y += (targetY - this.y) * 0.1;
   }
@@ -107,7 +140,6 @@ class Ball {
     this.x += this.xSpeed;
     this.y += this.ySpeed;
 
-    // Bounce off top and bottom walls
     if (this.y - this.radius < 0 || this.y + this.radius > height) {
       this.ySpeed *= -1;
     }
